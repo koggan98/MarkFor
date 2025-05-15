@@ -16,7 +16,7 @@ library(Metrics)
 ############################################################################
 # Load the dataset
 ############################################################################
-df <- read_csv("synthetic_beverage_sales_data.csv") %>%
+df <- read_csv("synthetic_beverage_sales_data.csv", show_col_types = FALSE) %>%
   clean_names()
 head(df, 4) # print first 4 rows of data frame
 glimpse(df) # print summary of data frame
@@ -405,9 +405,8 @@ all_segments <- c(
   "Champions", "Loyal Customers", "Potential Loyalist",
   "New Customers", "Need Attention", "Promising",
   "About To Sleep", "At Risk", "Can’t Lose Them",
-  "Hibernating", "Lost", "Active High Value",
-  "Active Medium Value", "Dormant High Value",
-  "Occasional Shoppers", "Dormant Big Spenders"
+  "Hibernating", "Lost", "Dormant High Value",
+  "Occasional Shoppers"
 )
 
 # B2C Segmentation
@@ -520,6 +519,53 @@ segment_analysis_b2b <- rfm_segmented_b2b %>%
 kable(segment_analysis_b2b, caption = "RFM Analysis – B2B")
 kable(segment_analysis_b2c, caption = "RFM Analysis – B2C")
 
+# --------------------------- Plots ------------------------------------
+# ---- B2B: Kundenanzahl pro Segment ----
+ggplot(segment_analysis_b2b, aes(x = reorder(segment, no_customers), y = no_customers)) +
+  geom_bar(stat = "identity", fill = "#377eb8") +
+  coord_flip() +
+  labs(
+    title = "Customer Count by Segment (B2B)",
+    x = "Segment",
+    y = "Number of Customers"
+  ) +
+  theme_minimal()
+
+# ---- B2B: Durchschnittlicher Umsatz pro Segment ----
+ggplot(segment_analysis_b2b, aes(x = reorder(segment, avg_spending), y = avg_spending)) +
+  geom_bar(stat = "identity", fill = "#4daf4a") +
+  coord_flip() +
+  labs(
+    title = "Average Revenue by Segment (B2B)",
+    x = "Segment",
+    y = "Average Revenue (€)"
+  ) +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
+
+# ---- B2C: Kundenanzahl pro Segment ----
+ggplot(segment_analysis_b2c, aes(x = reorder(segment, no_customers), y = no_customers)) +
+  geom_bar(stat = "identity", fill = "#984ea3") +
+  coord_flip() +
+  labs(
+    title = "Customer Count by Segment (B2C)",
+    x = "Segment",
+    y = "Number of Customers"
+  ) +
+  theme_minimal()
+
+# ---- B2C: Durchschnittlicher Umsatz pro Segment ----
+ggplot(segment_analysis_b2c, aes(x = reorder(segment, avg_spending), y = avg_spending)) +
+  geom_bar(stat = "identity", fill = "#ff7f00") +
+  coord_flip() +
+  labs(
+    title = "Average Revenue by Segment (B2C)",
+    x = "Segment",
+    y = "Average Revenue (€)"
+  ) +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
+
 ############################################################################
 # Multiple Linear Regression
 ############################################################################
@@ -567,23 +613,23 @@ top_products_b2b <- c(
 )
 
 # Store regression summaries for each product
-model_summaries <- list()
+model_summaries_b2b <- list()
 
 for (prod in top_products_b2b) {
   df_product <- b2b_prepped %>% filter(product == prod)
 
   if (nrow(df_product) >= 50) { # Ensure sufficient sample size
-    model <- lm(quantity ~ discount + region + month, data = df_product)
-    model_summaries[[prod]] <- summary(model)
+    model_b2b <- lm(quantity ~ discount + region + month, data = df_product)
+    model_summaries_b2b[[prod]] <- summary(model_b2b)
   }
 }
 
 # Output regression results per product
-for (prod in names(model_summaries)) {
+for (prod in names(model_summaries_b2b)) {
   cat("\n==========================================\n")
   cat("Regression Summary for:", prod, "\n")
   cat("==========================================\n")
-  print(model_summaries[[prod]])
+  print(model_summaries_b2b[[prod]])
 }
 
 #------------------- Model evaluation -------------------
@@ -617,8 +663,8 @@ for (prod in top_products_b2b) {
 
     # Calculate evaluation metrics
     rmse_val_b2b <- rmse(actual = test_data_b2b$quantity, predicted = predictions_b2b)
-    r2_val_b2b <- summary(model)$r.squared # training R²
-    adj_r2_b2b <- summary(model)$adj.r.squared
+    r2_val_b2b <- summary(model_b2b)$r.squared # training R²
+    adj_r2_b2b <- summary(model_b2b)$adj.r.squared
 
     # Compute R² on test set
     ss_total_b2b <- sum((test_data_b2b$quantity - mean(test_data_b2b$quantity))^2)
@@ -629,12 +675,12 @@ for (prod in top_products_b2b) {
     model_metrics_b2b <- model_metrics_b2b %>%
       add_row(
         product       = prod,
-        train_r2      = round(r2_val, 3),
-        train_adj_r2  = round(adj_r2, 3),
-        test_r2       = round(test_r2, 3),
-        rmse_test     = round(rmse_val, 3),
-        n_train       = nrow(train_data),
-        n_test        = nrow(test_data)
+        train_r2      = round(r2_val_b2b, 3),
+        train_adj_r2  = round(adj_r2_b2b, 3),
+        test_r2       = round(test_r2_b2b, 3),
+        rmse_test     = round(rmse_val_b2b, 3),
+        n_train       = nrow(train_data_b2b),
+        n_test        = nrow(test_data_b2b)
       )
   }
 }
@@ -662,15 +708,23 @@ top_products_b2c <- c(
 )
 
 # Store regression summaries for each product
-model_summaries <- list()
+model_summaries_b2c <- list()
 
 for (prod in top_products_b2c) {
   df_product <- b2c_prepped %>% filter(product == prod)
 
   if (nrow(df_product) >= 50) {
-    model <- lm(quantity ~ discount + region + month, data = df_product)
-    model_summaries[[prod]] <- summary(model)
+    model_b2c <- lm(quantity ~ discount + region + month, data = df_product)
+    model_summaries_b2c[[prod]] <- summary(model_b2c)
   }
+}
+
+# Output regression results per product
+for (prod in names(model_summaries_b2c)) {
+  cat("\n==========================================\n")
+  cat("Regression Summary for:", prod, "\n")
+  cat("==========================================\n")
+  print(model_summaries_b2c[[prod]])
 }
 
 #------------------- Model evaluation -------------------
@@ -729,13 +783,6 @@ for (prod in top_products_b2c) {
 # Display evaluation results
 kable(model_metrics, caption = "Model Performance on Test Set – B2B")
 
-# Output regression results per product
-for (prod in names(model_summaries)) {
-  cat("\n==========================================\n")
-  cat("Regression Summary for:", prod, "\n")
-  cat("==========================================\n")
-  print(model_summaries[[prod]])
-}
 
 #------------------- Seeing if theres a difference in weekdays vs weekends -------------------
 # Only one product is selected for this analysis

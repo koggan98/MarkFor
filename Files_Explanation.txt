@@ -1,0 +1,26 @@
+Market Analysis and Forecasting – Files Explanation
+Students: Sven Träger, Daniel Kogan
+
+Environment and Tools
+The entire analysis was conducted using R in a Jupyter Notebook (via the R kernel).
+This setup enabled a structured and transparent workflow that combines code, comments, and results in one document.
+
+Included Files:
+markfor_analysis_notebook.ipynb
+    The original Jupyter Notebook containing all code, explanations, and output.
+    Most modern IDEs (e.g., VSCode with Jupyter support) can open and run it.
+
+markfor_analysis_notebook.pdf
+    A PDF export of the notebook, provided in case the .ipynb file cannot be opened directly.
+    The individual outputs of the cells can be viewed without the need to run the code.
+
+markfor_analysis_script.R
+    A standalone R script containing all code from the notebook, ready to run in any standard R environment (e.g., RStudio, R GUI, R terminal).
+
+Notes on Execution
+The .ipynb file requires a Jupyter environment with R kernel support (e.g., JupyterLab, or VSCode with appropriate extensions).
+
+The .R script is self-contained and can be executed without Jupyter.
+
+All necessary packages are listed at the top of the script.
+If not already installed, they can be added by uncommenting the second line (install.packages(...)).

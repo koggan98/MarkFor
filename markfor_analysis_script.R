@@ -1,5 +1,5 @@
 # Install packages (run only once if not already installed)
-# install.packages(c("tidyverse", "lubridate", "skimr", "janitor", "rfm", "caret", "jtools", "broom", "Metrics"))
+# install.packages(c("tidyverse", "lubridate", "skimr", "janitor", "knitr", "rfm", "caret", "jtools", "broom", "Metrics"))
 
 # Load necessary libraries
 library(tidyverse) # includes ggplot2, dplyr, tidyr, purrr
@@ -384,7 +384,6 @@ segment_analysis_b2c <- rfm_segmented_b2c %>%
   arrange(factor(segment, levels = all_segments))
 
 # ------------------------------ Output Tables ------------------------------
-
 # Summary tables per segment for reporting
 kable(segment_analysis_b2b, caption = "RFM Segment Summary – B2B", digits = 2)
 kable(segment_analysis_b2c, caption = "RFM Segment Summary – B2C", digits = 2)
@@ -521,4 +520,250 @@ segment_analysis_b2b <- rfm_segmented_b2b %>%
 kable(segment_analysis_b2b, caption = "RFM Analysis – B2B")
 kable(segment_analysis_b2c, caption = "RFM Analysis – B2C")
 
-### weiter mit mit sven sachen!!
+############################################################################
+# Multiple Linear Regression
+############################################################################
+
+# -------------------- Top 10 Products by Revenue (B2B and B2C) --------------------
+# B2B: Calculate total revenue per product and return the top 10
+top_revenue_b2b <- line_wise_b2b %>%
+  group_by(product) %>%
+  summarise(
+    total_revenue = sum(total_price, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_revenue)) %>%
+  slice_head(n = 10)
+# B2C: Same logic applied to B2C customers
+top_revenue_b2c <- line_wise_b2c %>%
+  group_by(product) %>%
+  summarise(
+    total_revenue = sum(total_price, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_revenue)) %>%
+  slice_head(n = 10)
+kable(top_revenue_b2b, caption = "Top 10 Products by Revenue – B2B", digits = 2)
+kable(top_revenue_b2c, caption = "Top 10 Products by Revenue – B2C", digits = 2)
+
+# ------------------- Multiple Linear Regression per Product -------------------
+# --- To identify the impact of discount, region, and month on quantity sold ---
+
+# Prepare B2B data: define region, discount, and month as predictors
+b2b_prepped <- line_wise_b2b %>%
+  mutate(
+    region   = as.factor(region),
+    product  = as.factor(product),
+    discount = as.numeric(discount),
+    month    = factor(format(order_date, "%m")) # adds seasonal effect
+  ) %>%
+  select(product, quantity, discount, region, month)
+
+# Define a list of top-selling products for B2B
+top_products_b2b <- c(
+  "Moët & Chandon", "Veuve Clicquot", "Johnnie Walker", "Jack Daniels",
+  "Tanqueray", "Havana Club", "Bacardi", "Riesling", "Chardonnay",
+  "Sauvignon Blanc"
+)
+
+# Store regression summaries for each product
+model_summaries <- list()
+
+for (prod in top_products_b2b) {
+  df_product <- b2b_prepped %>% filter(product == prod)
+
+  if (nrow(df_product) >= 50) { # Ensure sufficient sample size
+    model <- lm(quantity ~ discount + region + month, data = df_product)
+    model_summaries[[prod]] <- summary(model)
+  }
+}
+
+# Output regression results per product
+for (prod in names(model_summaries)) {
+  cat("\n==========================================\n")
+  cat("Regression Summary for:", prod, "\n")
+  cat("==========================================\n")
+  print(model_summaries[[prod]])
+}
+
+#------------------- Model evaluation -------------------
+# Store evaluation metrics
+model_metrics_b2b <- tibble(
+  product       = character(),
+  train_r2      = numeric(),
+  train_adj_r2  = numeric(),
+  test_r2       = numeric(),
+  rmse_test     = numeric(),
+  n_train       = integer(),
+  n_test        = integer()
+)
+
+for (prod in top_products_b2b) {
+  df_product <- b2b_prepped %>% filter(product == prod)
+
+  if (nrow(df_product) >= 50) {
+    set.seed(123) # reproducibility
+
+    # Create training (80%) and test (20%) split
+    train_index_b2b <- createDataPartition(df_product$quantity, p = 0.8, list = FALSE)
+    train_data_b2b <- df_product[train_index_b2b, ]
+    test_data_b2b <- df_product[-train_index_b2b, ]
+
+    # Fit model on training set
+    model_b2b <- lm(quantity ~ discount + region + month, data = train_data_b2b)
+
+    # Predict on test set
+    predictions_b2b <- predict(model_b2b, newdata = test_data_b2b)
+
+    # Calculate evaluation metrics
+    rmse_val_b2b <- rmse(actual = test_data_b2b$quantity, predicted = predictions_b2b)
+    r2_val_b2b <- summary(model)$r.squared # training R²
+    adj_r2_b2b <- summary(model)$adj.r.squared
+
+    # Compute R² on test set
+    ss_total_b2b <- sum((test_data_b2b$quantity - mean(test_data_b2b$quantity))^2)
+    ss_res_b2b <- sum((test_data_b2b$quantity - predictions_b2b)^2)
+    test_r2_b2b <- 1 - (ss_res_b2b / ss_total_b2b)
+
+    # Store metrics
+    model_metrics_b2b <- model_metrics_b2b %>%
+      add_row(
+        product       = prod,
+        train_r2      = round(r2_val, 3),
+        train_adj_r2  = round(adj_r2, 3),
+        test_r2       = round(test_r2, 3),
+        rmse_test     = round(rmse_val, 3),
+        n_train       = nrow(train_data),
+        n_test        = nrow(test_data)
+      )
+  }
+}
+
+# Display evaluation results
+kable(model_metrics_b2b, caption = "Model Performance on Test Set – B2B")
+
+
+# --------------------- Same logic applied to B2C data -------------------------
+
+b2c_prepped <- line_wise_b2c %>%
+  mutate(
+    region   = as.factor(region),
+    product  = as.factor(product),
+    discount = as.numeric(discount),
+    month    = factor(format(order_date, "%m"))
+  ) %>%
+  select(product, quantity, discount, region, month)
+
+# Define a list of top-selling products for B2C
+top_products_b2c <- c(
+  "Veuve Clicquot", "Moët & Chandon", "Jack Daniels", "Johnnie Walker",
+  "Tanqueray", "Bacardi", "Havana Club", "Cranberry Juice", "Tomato Juice",
+  "Rotkäppchen Sekt"
+)
+
+# Store regression summaries for each product
+model_summaries <- list()
+
+for (prod in top_products_b2c) {
+  df_product <- b2c_prepped %>% filter(product == prod)
+
+  if (nrow(df_product) >= 50) {
+    model <- lm(quantity ~ discount + region + month, data = df_product)
+    model_summaries[[prod]] <- summary(model)
+  }
+}
+
+#------------------- Model evaluation -------------------
+# Store evaluation metrics
+model_metrics_b2c <- tibble(
+  product       = character(),
+  train_r2      = numeric(),
+  train_adj_r2  = numeric(),
+  test_r2       = numeric(),
+  rmse_test     = numeric(),
+  n_train       = integer(),
+  n_test        = integer()
+)
+
+for (prod in top_products_b2c) {
+  df_product <- b2c_prepped %>% filter(product == prod)
+
+  if (nrow(df_product) >= 50) {
+    set.seed(123) # reproducibility
+
+    # Create training (80%) and test (20%) split
+    train_index <- createDataPartition(df_product$quantity, p = 0.8, list = FALSE)
+    train_data <- df_product[train_index, ]
+    test_data <- df_product[-train_index, ]
+
+    # Fit model on training set
+    model <- lm(quantity ~ discount + region + month, data = train_data)
+
+    # Predict on test set
+    predictions <- predict(model, newdata = test_data)
+
+    # Calculate evaluation metrics
+    rmse_val <- rmse(actual = test_data$quantity, predicted = predictions)
+    r2_val <- summary(model)$r.squared # training R²
+    adj_r2 <- summary(model)$adj.r.squared
+
+    # Compute R² on test set
+    ss_total <- sum((test_data$quantity - mean(test_data$quantity))^2)
+    ss_res <- sum((test_data$quantity - predictions)^2)
+    test_r2 <- 1 - (ss_res / ss_total)
+
+    # Store metrics
+    model_metrics <- model_metrics %>%
+      add_row(
+        product       = prod,
+        train_r2      = round(r2_val, 3),
+        train_adj_r2  = round(adj_r2, 3),
+        test_r2       = round(test_r2, 3),
+        rmse_test     = round(rmse_val, 3),
+        n_train       = nrow(train_data),
+        n_test        = nrow(test_data)
+      )
+  }
+}
+
+# Display evaluation results
+kable(model_metrics, caption = "Model Performance on Test Set – B2B")
+
+# Output regression results per product
+for (prod in names(model_summaries)) {
+  cat("\n==========================================\n")
+  cat("Regression Summary for:", prod, "\n")
+  cat("==========================================\n")
+  print(model_summaries[[prod]])
+}
+
+#------------------- Seeing if theres a difference in weekdays vs weekends -------------------
+# Only one product is selected for this analysis
+df_jack_weekend <- line_wise_b2c %>%
+  filter(product == "Jack Daniels") %>%
+  mutate(
+    region      = as.factor(region),
+    discount    = as.numeric(discount),
+    unit_price  = as.numeric(unit_price),
+    month       = factor(month(order_date)),
+    is_weekend  = ifelse(wday(order_date) %in% c(1, 7), 1, 0) # Sonntag (1) und Samstag (7)
+  ) %>%
+  select(quantity, discount, unit_price, region, month, is_weekend) %>%
+  na.omit()
+
+# Split & Modell
+set.seed(123)
+idx <- createDataPartition(df_jack_weekend$quantity, p = 0.8, list = FALSE)
+train <- df_jack_weekend[idx, ]
+test <- df_jack_weekend[-idx, ]
+
+model_weekend <- lm(quantity ~ discount + unit_price + region + month + is_weekend, data = train)
+summary(model_weekend)
+
+# Evaluation
+pred <- predict(model_weekend, newdata = test)
+rmse <- sqrt(mean((test$quantity - pred)^2))
+r2 <- 1 - sum((test$quantity - pred)^2) / sum((test$quantity - mean(test$quantity))^2)
+
+cat("RMSE (is_weekend):", round(rmse, 2), "\n")
+cat("R² (is_weekend):", round(r2, 4), "\n")

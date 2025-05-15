@@ -1,0 +1,9 @@
+# Wenn du es noch nicht hast
+install.packages(c("knitr", "rmarkdown", "tinytex"))
+tinytex::install_tinytex() # LaTeX-Engine (einmalig nötig)
+
+# Schritt 1: Spin erzeugt ein .Rmd aus deinem Skript
+knitr::spin("markfor_analysis_script.R", knit = TRUE)
+
+# Schritt 2: Rende das .Rmd zu PDF
+rmarkdown::render("markfor_analysis_script.R.Rmd", output_format = "pdf_document")

@@ -627,7 +627,7 @@ for (prod in top_products_b2b) {
 # Output regression results per product
 for (prod in names(model_summaries_b2b)) {
   cat("\n==========================================\n")
-  cat("Regression Summary for:", prod, "\n")
+  cat(" B2B Regression Summary for:", prod, "\n")
   cat("==========================================\n")
   print(model_summaries_b2b[[prod]])
 }
@@ -695,10 +695,9 @@ b2c_prepped <- line_wise_b2c %>%
   mutate(
     region   = as.factor(region),
     product  = as.factor(product),
-    discount = as.numeric(discount),
     month    = factor(format(order_date, "%m"))
   ) %>%
-  select(product, quantity, discount, region, month)
+  select(product, quantity, region, month)
 
 # Define a list of top-selling products for B2C
 top_products_b2c <- c(
@@ -714,7 +713,7 @@ for (prod in top_products_b2c) {
   df_product <- b2c_prepped %>% filter(product == prod)
 
   if (nrow(df_product) >= 50) {
-    model_b2c <- lm(quantity ~ discount + region + month, data = df_product)
+    model_b2c <- lm(quantity ~ region + month, data = df_product)
     model_summaries_b2c[[prod]] <- summary(model_b2c)
   }
 }
@@ -722,7 +721,7 @@ for (prod in top_products_b2c) {
 # Output regression results per product
 for (prod in names(model_summaries_b2c)) {
   cat("\n==========================================\n")
-  cat("Regression Summary for:", prod, "\n")
+  cat("B2C Regression Summary for:", prod, "\n")
   cat("==========================================\n")
   print(model_summaries_b2c[[prod]])
 }
@@ -751,7 +750,7 @@ for (prod in top_products_b2c) {
     test_data <- df_product[-train_index, ]
 
     # Fit model on training set
-    model <- lm(quantity ~ discount + region + month, data = train_data)
+    model <- lm(quantity ~ region + month, data = train_data)
 
     # Predict on test set
     predictions <- predict(model, newdata = test_data)
@@ -767,7 +766,7 @@ for (prod in top_products_b2c) {
     test_r2 <- 1 - (ss_res / ss_total)
 
     # Store metrics
-    model_metrics <- model_metrics %>%
+    model_metrics_b2c <- model_metrics_b2c %>%
       add_row(
         product       = prod,
         train_r2      = round(r2_val, 3),
@@ -781,7 +780,7 @@ for (prod in top_products_b2c) {
 }
 
 # Display evaluation results
-kable(model_metrics, caption = "Model Performance on Test Set – B2B")
+kable(model_metrics_b2c, caption = "Model Performance on Test Set – B2B")
 
 
 #------------------- Seeing if theres a difference in weekdays vs weekends -------------------
@@ -790,10 +789,9 @@ df_jack_weekend <- line_wise_b2c %>%
   filter(product == "Jack Daniels") %>%
   mutate(
     region      = as.factor(region),
-    discount    = as.numeric(discount),
     unit_price  = as.numeric(unit_price),
     month       = factor(month(order_date)),
-    is_weekend  = ifelse(wday(order_date) %in% c(1, 7), 1, 0) # Sonntag (1) und Samstag (7)
+    is_weekend  = ifelse(wday(order_date) %in% c(1, 7), 1, 0) # Sunday (1) und Saturday (7)
   ) %>%
   select(quantity, discount, unit_price, region, month, is_weekend) %>%
   na.omit()
@@ -804,7 +802,7 @@ idx <- createDataPartition(df_jack_weekend$quantity, p = 0.8, list = FALSE)
 train <- df_jack_weekend[idx, ]
 test <- df_jack_weekend[-idx, ]
 
-model_weekend <- lm(quantity ~ discount + unit_price + region + month + is_weekend, data = train)
+model_weekend <- lm(quantity ~ unit_price + region + month + is_weekend, data = train)
 summary(model_weekend)
 
 # Evaluation

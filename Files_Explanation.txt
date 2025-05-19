@@ -10,9 +10,14 @@ markfor_analysis_notebook.ipynb
     The original Jupyter Notebook containing all code, explanations, and output.
     Most modern IDEs (e.g., VSCode with Jupyter support) can open and run it.
 
+markfor_analysis_notebook.html
+ A HTML export of the notebook, provided in case the .ipynb file cannot be opened directly.
+    The individual outputs of the cells can be viewed without the need to run the code.
+
 markfor_analysis_notebook.pdf
     A PDF export of the notebook, provided in case the .ipynb file cannot be opened directly.
     The individual outputs of the cells can be viewed without the need to run the code.
+    The lines are sometimes too long to be viewed in the PDF version, which is why the HTML version is preferred.
 
 markfor_analysis_script.R
     A standalone R script containing all code from the notebook, ready to run in any standard R environment (e.g., RStudio, R GUI, R terminal).

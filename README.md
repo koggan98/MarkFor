@@ -1,30 +1,93 @@
-Market Analysis and Forecasting 
+# Market Analysis and Forecasting
 
-Environment and Tools
-The entire analysis was conducted using R in a Jupyter Notebook (via the R kernel).
-This setup enabled a structured and transparent workflow that combines code, comments, and results in one document.
+## Overview
 
-Included Files:
-markfor_analysis_notebook.ipynb
-    The original Jupyter Notebook containing all code, explanations, and output.
-    Most modern IDEs (e.g., VSCode with Jupyter support) can open and run it.
+This repository contains the complete analysis for the **Market Analysis and Forecasting** project.
 
-markfor_analysis_notebook.html
- A HTML export of the notebook, provided in case the .ipynb file cannot be opened directly.
-    The individual outputs of the cells can be viewed without the need to run the code.
+The analysis was conducted using **R** inside a **Jupyter Notebook** (R kernel). This setup allows a structured and transparent workflow by combining code, explanations, and results within a single document.
 
-markfor_analysis_notebook.pdf
-    A PDF export of the notebook, provided in case the .ipynb file cannot be opened directly.
-    The individual outputs of the cells can be viewed without the need to run the code.
-    The lines are sometimes too long to be viewed in the PDF version, which is why the HTML version is preferred.
+---
 
-markfor_analysis_script.R
-    A standalone R script containing all code from the notebook, ready to run in any standard R environment (e.g., RStudio, R GUI, R terminal).
+## Environment and Tools
 
-Notes on Execution
-The .ipynb file requires a Jupyter environment with R kernel support (e.g., JupyterLab, or VSCode with appropriate extensions).
+- Language: **R**
+- Notebook environment: **Jupyter Notebook (R kernel)**
+- Compatible IDEs:
+  - VS Code with Jupyter support
+  - JupyterLab
+  - RStudio (for running the standalone script)
 
-The .R script is self-contained and can be executed without Jupyter.
+---
 
-All necessary packages are listed at the top of the script.
-If not already installed, they can be added by uncommenting the second line (install.packages(...)).
+## Repository Structure
+
+### `markfor_analysis_notebook.ipynb`
+
+The original Jupyter Notebook containing:
+
+- full analysis code  
+- explanations and comments  
+- generated outputs and visualizations  
+
+Most modern IDEs can open and execute this file directly.
+
+---
+
+### `markfor_analysis_notebook.html`
+
+HTML export of the notebook.
+
+Use this if:
+
+- you cannot open the `.ipynb` file
+- you only want to inspect results without executing code
+
+This version preserves layout and readability and is generally preferred over the PDF.
+
+---
+
+### `markfor_analysis_notebook.pdf`
+
+PDF export of the notebook.
+
+Useful for quick offline viewing.  
+Note that some lines may be too long to display properly, which is why the HTML version is recommended.
+
+---
+
+### `markfor_analysis_script.R`
+
+Standalone R script containing the entire analysis.
+
+- Can be executed in any standard R environment
+- Independent from Jupyter
+- Suitable for reproducible execution or modifications
+
+---
+
+## Running the Analysis
+
+### Option 1: Jupyter Notebook
+
+Requirements:
+
+- Jupyter environment (JupyterLab or VS Code)
+- R kernel installed
+
+Open:
+**`markfor_analysis_notebook.ipynb`**
+
+---
+
+### Option 2: R Script (Recommended for simplicity)
+
+Run:
+**`markfor_analysis_script.R`**
+
+All required packages are listed at the top of the script.
+
+If packages are missing, install them by uncommenting:
+
+```r
+install.packages(...)
+ ```
